@@ -4,385 +4,511 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATLAS Writing Analyzer</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .lucide-icon {
-            width: 1.25rem;
-            height: 1.25rem;
-            stroke: currentColor;
-            stroke-width: 2;
-            fill: none;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .input-section, .output-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .analyze-btn:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .score-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .overall-score {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .score-excellent { color: #27ae60; }
+        .score-good { color: #f39c12; }
+        .score-needs-work { color: #e74c3c; }
+
+        .feedback-section {
+            margin-bottom: 25px;
+        }
+
+        .feedback-category {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .feedback-category h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .issue-list {
+            list-style: none;
+            margin-bottom: 15px;
+        }
+
+        .issue-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .issue-list li:before {
+            content: "⚠️";
+            position: absolute;
+            left: 0;
+        }
+
+        .suggestion-list {
+            list-style: none;
+        }
+
+        .suggestion-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .suggestion-list li:before {
+            content: "💡";
+            position: absolute;
+            left: 0;
+        }
+
+        .improvement-section {
+            background: #e8f5e8;
+            border: 2px solid #27ae60;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .improvement-section h3 {
+            color: #27ae60;
+            margin-bottom: 15px;
+        }
+
+        .revised-text {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div class="container">
+        <div class="header">
+            <h1>ATLAS Writing Analyzer</h1>
+            <p>Analyze your marketing copy for authenticity, clarity, and heart-centered connection</p>
+        </div>
 
-    <script type="text/babel">
-        const { useState } = React;
+        <div class="main-content">
+            <div class="input-section">
+                <h2 class="section-title">Your Marketing Copy</h2>
+                <textarea 
+                    id="textInput" 
+                    placeholder="Paste your marketing copy here - emails, landing pages, social posts, product descriptions, etc. The analyzer will check for authenticity, clarity, and alignment with heart-centered marketing principles."
+                ></textarea>
+                <button class="analyze-btn" onclick="analyzeText()">Analyze My Writing</button>
+            </div>
 
-        // Lucide icon components
-        const AlertCircle = () => (
-            <svg className="lucide-icon" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-        );
+            <div class="output-section">
+                <h2 class="section-title">Analysis Results</h2>
+                <div id="results" class="results">
+                    <div class="loading">Analyzing your copy...</div>
+                </div>
+                <div id="placeholder" style="color: #6c757d; text-align: center; padding: 40px;">
+                    Your analysis results will appear here after you click "Analyze My Writing"
+                </div>
+            </div>
+        </div>
+    </div>
 
-        const CheckCircle = () => (
-            <svg className="lucide-icon" viewBox="0 0 24 24">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22,4 12,14.01 9,11.01"/>
-            </svg>
-        );
+    <script>
+        function analyzeText() {
+            const text = document.getElementById('textInput').value.trim();
+            const resultsDiv = document.getElementById('results');
+            const placeholder = document.getElementById('placeholder');
+            
+            if (!text) {
+                alert('Please enter some text to analyze!');
+                return;
+            }
 
-        const Edit3 = () => (
-            <svg className="lucide-icon w-12 h-12" viewBox="0 0 24 24">
-                <path d="M12 20h9"/>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-        );
+            // Show loading state
+            placeholder.style.display = 'none';
+            resultsDiv.classList.add('show');
+            resultsDiv.innerHTML = '<div class="loading">Analyzing your copy...</div>';
 
-        const Lightbulb = () => (
-            <svg className="lucide-icon" viewBox="0 0 24 24">
-                <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/>
-                <path d="M9 18h6"/>
-                <path d="M10 22h4"/>
-            </svg>
-        );
+            // Simulate analysis delay
+            setTimeout(() => {
+                const analysis = performAnalysis(text);
+                displayResults(analysis);
+            }, 1500);
+        }
 
-        const Target = () => (
-            <svg className="lucide-icon w-6 h-6" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="6"/>
-                <circle cx="12" cy="12" r="2"/>
-            </svg>
-        );
+        function performAnalysis(text) {
+            const issues = [];
+            const suggestions = [];
+            const strengths = [];
+            let score = 100;
 
-        const Zap = () => (
-            <svg className="lucide-icon w-6 h-6" viewBox="0 0 24 24">
-                <polygon points="13,2 3,14 12,14 11,22 21,10 12,10 13,2"/>
-            </svg>
-        );
+            // Check for condescending language
+            const condescendingPhrases = [
+                'you need to', 'you should', 'you must', 'stop doing', 'quit', 'never again',
+                'tired of', 'sick of', 'struggling with', 'failing at', 'you\'re doing it wrong'
+            ];
+            
+            condescendingPhrases.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase.toLowerCase())) {
+                    issues.push(`Potentially condescending tone detected: "${phrase}"`);
+                    score -= 10;
+                }
+            });
 
-        const Users = () => (
-            <svg className="lucide-icon w-6 h-6" viewBox="0 0 24 24">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-            </svg>
-        );
+            // Check for business-first language
+            const businessFirstPhrases = [
+                'i help', 'i teach', 'i show', 'my program', 'my system', 'my method',
+                'i\'ve helped', 'i work with', 'i specialize'
+            ];
+            
+            let businessFirstCount = 0;
+            businessFirstPhrases.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase.toLowerCase())) {
+                    businessFirstCount++;
+                }
+            });
+            
+            if (businessFirstCount > 2) {
+                issues.push('Copy is too business-focused rather than client-focused');
+                score -= 15;
+            }
 
-        const MessageSquare = () => (
-            <svg className="lucide-icon w-6 h-6" viewBox="0 0 24 24">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-        );
+            // Check for jargon and industry speak
+            const jargonPhrases = [
+                'transformation', 'breakthrough', 'next level', 'scale', 'optimize',
+                'leverage', 'mindset shift', 'paradigm', 'game-changer', 'revolutionary'
+            ];
+            
+            let jargonCount = 0;
+            jargonPhrases.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase.toLowerCase())) {
+                    jargonCount++;
+                }
+            });
+            
+            if (jargonCount > 3) {
+                issues.push('Heavy use of marketing jargon may sound inauthentic');
+                score -= 12;
+            }
 
-        const WritingAnalyzer = () => {
-            const [inputText, setInputText] = useState('');
-            const [analysis, setAnalysis] = useState(null);
-            const [isAnalyzing, setIsAnalyzing] = useState(false);
+            // Check for rhetorical questions
+            const questionMarks = (text.match(/\?/g) || []).length;
+            if (questionMarks > 3) {
+                issues.push('Too many rhetorical questions can feel manipulative');
+                score -= 8;
+            }
 
-            const analyzeText = () => {
-                if (!inputText.trim()) return;
-                
-                setIsAnalyzing(true);
-                
-                setTimeout(() => {
-                    const analysis = performAnalysis(inputText);
-                    setAnalysis(analysis);
-                    setIsAnalyzing(false);
-                }, 1000);
+            // Check for solution-jumping
+            const solutionPhrases = ['here\'s how', 'the solution', 'the answer', 'simply do'];
+            solutionPhrases.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase.toLowerCase())) {
+                    issues.push('May be jumping to solutions too quickly');
+                    score -= 5;
+                }
+            });
+
+            // Check for authentic language patterns
+            const authenticPhrases = [
+                'you might', 'perhaps', 'what if', 'imagine', 'picture this',
+                'you know that feeling', 'sounds familiar', 'been there'
+            ];
+            
+            let authenticCount = 0;
+            authenticPhrases.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase.toLowerCase())) {
+                    authenticCount++;
+                }
+            });
+            
+            if (authenticCount > 0) {
+                strengths.push('Uses empathetic, relatable language');
+                score += 5;
+            }
+
+            // Check for specific, concrete language
+            const words = text.split(/\s+/);
+            const vaguePhrases = ['things', 'stuff', 'everything', 'anything', 'something'];
+            let vagueCount = 0;
+            
+            vaguePhrases.forEach(phrase => {
+                vagueCount += (text.toLowerCase().match(new RegExp(phrase, 'g')) || []).length;
+            });
+            
+            if (vagueCount > words.length * 0.02) {
+                issues.push('Language is too vague - be more specific and concrete');
+                score -= 10;
+            }
+
+            // Generate suggestions based on issues
+            if (issues.some(issue => issue.includes('condescending'))) {
+                suggestions.push('Replace commanding language with invitational phrases like "you might consider" or "what if you tried"');
+            }
+            
+            if (issues.some(issue => issue.includes('business-focused'))) {
+                suggestions.push('Start with the client\'s current experience before mentioning your services');
+            }
+            
+            if (issues.some(issue => issue.includes('jargon'))) {
+                suggestions.push('Use everyday language your clients would use to describe their situation');
+            }
+            
+            if (issues.some(issue => issue.includes('rhetorical questions'))) {
+                suggestions.push('Replace questions with statements that paint a picture of their experience');
+            }
+
+            // Always provide general suggestions
+            suggestions.push('Focus on the problem the client is aware of before introducing solutions');
+            suggestions.push('Use "you" statements that reflect their inner experience back to them');
+            suggestions.push('Paint a vivid picture of their current reality before describing transformation');
+
+            return {
+                score: Math.max(score, 0),
+                issues,
+                suggestions,
+                strengths,
+                wordCount: words.length
             };
+        }
 
-            const performAnalysis = (text) => {
-                const issues = [];
-                const strengths = [];
-                const suggestions = [];
+        function displayResults(analysis) {
+            const resultsDiv = document.getElementById('results');
+            
+            let scoreClass = 'score-needs-work';
+            let scoreText = 'Needs Work';
+            
+            if (analysis.score >= 80) {
+                scoreClass = 'score-excellent';
+                scoreText = 'Excellent';
+            } else if (analysis.score >= 60) {
+                scoreClass = 'score-good';
+                scoreText = 'Good';
+            }
 
-                // Check for problematic patterns
-                const problemPatterns = [
-                    { pattern: /\b(transform|transformation|transformative)\b/gi, issue: "Overused transformation language", type: "jargon" },
-                    { pattern: /\b(unlock|unleash|discover)\b/gi, issue: "Generic marketing verbs", type: "jargon" },
-                    { pattern: /\b(skyrocket|explode|massive|incredible|amazing)\b/gi, issue: "Hyperbolic language", type: "tone" },
-                    { pattern: /are you (ready|tired|struggling|wondering)/gi, issue: "Rhetorical question framing", type: "structure" },
-                    { pattern: /\b(game-changer|next level|breakthrough)\b/gi, issue: "Overused buzzwords", type: "jargon" },
-                    { pattern: /imagine if|what if you could|picture this/gi, issue: "Fantasy positioning", type: "structure" },
-                    { pattern: /\b(guru|expert|authority)\b/gi, issue: "Ego-driven positioning", type: "tone" },
-                    { pattern: /\b(secrets?|formula|system that works)\b/gi, issue: "Guru-style language", type: "tone" },
-                    { pattern: /\b(proven|guaranteed|results)\b/gi, issue: "Over-promising language", type: "credibility" }
-                ];
+            const resultsHTML = `
+                <div class="score-section">
+                    <div class="overall-score ${scoreClass}">${analysis.score}/100</div>
+                    <div>${scoreText} - ${getScoreDescription(analysis.score)}</div>
+                    <div style="margin-top: 10px; color: #6c757d;">Word count: ${analysis.wordCount}</div>
+                </div>
 
-                // Check for ATLAS alignment issues
-                const atlasIssues = [
-                    { pattern: /\b(funnel|conversion rate|leads)\b/gi, issue: "Complex funnel language (conflicts with UnFunnel™)", type: "atlas" },
-                    { pattern: /limited time|act now|don't miss out|hurry/gi, issue: "Pressure tactics (not heart-centered)", type: "atlas" },
-                    { pattern: /\b(scale|grow|expand)\b/gi, issue: "Growth-focused vs. life-focused language", type: "atlas" },
-                    { pattern: /6-figure|7-figure|\$\d+k/gi, issue: "Money-first messaging", type: "atlas" }
-                ];
-
-                // Check for audience-first issues
-                const audienceIssues = [
-                    { pattern: /I help|I teach|I show/gi, issue: "Expert-first positioning (start with audience problem)", type: "positioning" },
-                    { pattern: /my program|my course|my system/gi, issue: "Solution-first language", type: "positioning" },
-                    { pattern: /let me|I want to|I'm here to/gi, issue: "Business-centric framing", type: "positioning" }
-                ];
-
-                [...problemPatterns, ...atlasIssues, ...audienceIssues].forEach(({ pattern, issue, type }) => {
-                    const matches = text.match(pattern);
-                    if (matches) {
-                        issues.push({ type, issue, examples: matches.slice(0, 3) });
-                    }
-                });
-
-                // Check for positive patterns
-                const strengthPatterns = [
-                    { pattern: /\b(authentic|genuine|real|honest)\b/gi, strength: "Authentic language" },
-                    { pattern: /in my experience|what I've noticed|I've found/gi, strength: "Personal perspective (good!)" },
-                    { pattern: /this isn't for you if|not a good fit if/gi, strength: "Clear boundaries - excellent curation!" },
-                    { pattern: /you might be|you're probably|if you're someone who/gi, strength: "Audience-first language" },
-                    { pattern: /here's what I mean|let me explain|for example/gi, strength: "Clear, conversational tone" },
-                    { pattern: /\b(simple|clear|straightforward)\b/gi, strength: "Simplicity focus (aligns with ATLAS)" }
-                ];
-
-                strengthPatterns.forEach(({ pattern, strength }) => {
-                    const matches = text.match(pattern);
-                    if (matches) {
-                        strengths.push({ strength, examples: matches.slice(0, 2) });
-                    }
-                });
-
-                // Generate ATLAS-specific suggestions
-                const hasPressure = issues.some(i => i.type === 'atlas' && i.issue.includes('Pressure'));
-                const hasRhetoricalQuestions = issues.some(i => i.issue.includes('Rhetorical'));
-                const hasExpertFirst = issues.some(i => i.type === 'positioning');
-                const hasJargon = issues.some(i => i.type === 'jargon');
-
-                if (hasExpertFirst) {
-                    suggestions.push("Start with your audience's current reality, not your credentials or offers");
-                }
-                if (hasRhetoricalQuestions) {
-                    suggestions.push("Replace rhetorical questions with direct statements about what your Dream Clients experience");
-                }
-                if (hasPressure) {
-                    suggestions.push("Remove pressure tactics - use heart-centered invitation language instead");
-                }
-                if (hasJargon) {
-                    suggestions.push("Use language your Dream Clients actually use to describe their situation");
-                }
-                if (issues.length > 0) {
-                    suggestions.push("Consider adding 'This is NOT for you if...' early to curate your audience");
-                    suggestions.push("Focus on the transformation gap, not the process details");
-                }
-
-                // Calculate readability score (simple version)
-                const sentences = text.split(/[.!?]+/).length;
-                const words = text.split(/\s+/).length;
-                const avgWordsPerSentence = words / sentences;
-                const readabilityNote = avgWordsPerSentence > 20 ? "Consider shorter sentences for better readability" : null;
-
-                return { 
-                    issues, 
-                    strengths, 
-                    suggestions: readabilityNote ? [...suggestions, readabilityNote] : suggestions,
-                    wordCount: words,
-                    sentenceCount: sentences,
-                    avgWordsPerSentence: Math.round(avgWordsPerSentence * 10) / 10
-                };
-            };
-
-            return (
-                <div className="max-w-4xl mx-auto p-6 bg-white min-h-screen">
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-bold text-gray-900 mb-2">ATLAS Writing Analyzer</h1>
-                        <p className="text-gray-600">Analyze your marketing copy for authentic, heart-centered messaging that attracts your Dream Clients</p>
-                        <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-                            <p className="text-sm text-purple-800"><strong>Pro Tip:</strong> This tool helps you write like a trusted guide, not a pushy salesperson. It's built around the ATLAS principles of heart-centered marketing.</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Input Section */}
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Paste your copy here:
-                                </label>
-                                <textarea
-                                    value={inputText}
-                                    onChange={(e) => setInputText(e.target.value)}
-                                    placeholder="Paste your email, social post, sales page copy, or any marketing content..."
-                                    className="w-full h-64 p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                            </div>
-                            
-                            <button
-                                onClick={analyzeText}
-                                disabled={!inputText.trim() || isAnalyzing}
-                                className={`w-full py-3 px-4 rounded-lg font-medium ${
-                                    !inputText.trim() || isAnalyzing
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
-                            >
-                                {isAnalyzing ? 'Analyzing...' : 'Analyze My Copy'}
-                            </button>
-                        </div>
-
-                        {/* Analysis Results */}
-                        <div className="space-y-6">
-                            {analysis && (
-                                <>
-                                    {/* Overview */}
-                                    <div className="bg-gray-50 p-4 rounded-lg">
-                                        <h3 className="font-semibold text-gray-900 mb-2">Quick Stats</h3>
-                                        <div className="grid grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <span className="text-gray-600">Words:</span>
-                                                <span className="ml-2 font-medium">{analysis.wordCount}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600">Issues:</span>
-                                                <span className="ml-2 font-medium">{analysis.issues.length}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600">Sentences:</span>
-                                                <span className="ml-2 font-medium">{analysis.sentenceCount}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-600">Avg/Sentence:</span>
-                                                <span className="ml-2 font-medium">{analysis.avgWordsPerSentence} words</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Issues */}
-                                    {analysis.issues.length > 0 && (
-                                        <div className="bg-red-50 p-4 rounded-lg">
-                                            <div className="flex items-center mb-3">
-                                                <AlertCircle />
-                                                <h3 className="font-semibold text-red-900 ml-2">Areas to Improve</h3>
-                                            </div>
-                                            <div className="space-y-3">
-                                                {analysis.issues.map((issue, index) => (
-                                                    <div key={index} className="text-sm">
-                                                        <div className="font-medium text-red-800">{issue.issue}</div>
-                                                        {issue.examples && (
-                                                            <div className="text-red-600 mt-1">
-                                                                Found: "{issue.examples.join('", "')}"
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Strengths */}
-                                    {analysis.strengths.length > 0 && (
-                                        <div className="bg-green-50 p-4 rounded-lg">
-                                            <div className="flex items-center mb-3">
-                                                <CheckCircle />
-                                                <h3 className="font-semibold text-green-900 ml-2">What's Working Well</h3>
-                                            </div>
-                                            <div className="space-y-2">
-                                                {analysis.strengths.map((strength, index) => (
-                                                    <div key={index} className="text-sm">
-                                                        <div className="font-medium text-green-800">{strength.strength}</div>
-                                                        {strength.examples && (
-                                                            <div className="text-green-600 mt-1">
-                                                                Found: "{strength.examples.join('", "')}"
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Suggestions */}
-                                    {analysis.suggestions.length > 0 && (
-                                        <div className="bg-blue-50 p-4 rounded-lg">
-                                            <div className="flex items-center mb-3">
-                                                <Lightbulb />
-                                                <h3 className="font-semibold text-blue-900 ml-2">ATLAS-Aligned Suggestions</h3>
-                                            </div>
-                                            <ul className="space-y-2 text-sm text-blue-800">
-                                                {analysis.suggestions.map((suggestion, index) => (
-                                                    <li key={index} className="flex items-start">
-                                                        <span className="inline-block w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                                                        {suggestion}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-
-                                    {/* Perfect Score Message */}
-                                    {analysis.issues.length === 0 && analysis.strengths.length > 0 && (
-                                        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg">
-                                            <div className="text-center">
-                                                <CheckCircle />
-                                                <h3 className="text-xl font-bold text-gray-900 mt-2">Excellent Work!</h3>
-                                                <p className="text-gray-600 mt-2">Your copy aligns well with ATLAS principles. Your Dream Clients will feel seen and understood.</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-
-                            {!analysis && (
-                                <div className="bg-gray-50 p-8 rounded-lg text-center">
-                                    <Edit3 />
-                                    <p className="text-gray-600 mt-4">Paste your copy above and hit analyze to get started!</p>
-                                    <p className="text-sm text-gray-500 mt-2">Perfect for emails, social posts, sales pages, and any marketing content.</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* ATLAS Framework Reference */}
-                    <div className="mt-12 bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg">
-                        <h3 className="text-xl font-bold text-gray-900 mb-4">ATLAS Framework Quick Reference</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-white p-4 rounded-lg">
-                                <Target />
-                                <h4 className="font-semibold text-gray-900 mb-1 mt-2">Dream Client DNA™</h4>
-                                <p className="text-sm text-gray-600">Focus on who you serve, not just what you do</p>
-                            </div>
-                            <div className="bg-white p-4 rounded-lg">
-                                <Zap />
-                                <h4 className="font-semibold text-gray-900 mb-1 mt-2">Superpower Matrix™</h4>
-                                <p className="text-sm text-gray-600">Lead with your unique strengths and story</p>
-                            </div>
-                            <div className="bg-white p-4 rounded-lg">
-                                <Users />
-                                <h4 className="font-semibold text-gray-900 mb-1 mt-2">UnFunnel™</h4>
-                                <p className="text-sm text-gray-600">Simplify your path to connection</p>
-                            </div>
-                            <div className="bg-white p-4 rounded-lg">
-                                <MessageSquare />
-                                <h4 className="font-semibold text-gray-900 mb-1 mt-2">Chain of Beliefs™</h4>
-                                <p className="text-sm text-gray-600">Bar Stool → Differentiator → Epiphany</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-8 text-center text-sm text-gray-500">
-                        <p>Built for heart-centered entrepreneurs who want to market authentically</p>
+                ${analysis.strengths.length > 0 ? `
+                <div class="feedback-section">
+                    <div class="feedback-category" style="border-left-color: #27ae60; background: #e8f5e8;">
+                        <h3><span>✅</span> What's Working Well</h3>
+                        <ul class="suggestion-list">
+                            ${analysis.strengths.map(strength => `<li>${strength}</li>`).join('')}
+                        </ul>
                     </div>
                 </div>
-            );
-        };
+                ` : ''}
 
-        ReactDOM.render(<WritingAnalyzer />, document.getElementById('root'));
+                ${analysis.issues.length > 0 ? `
+                <div class="feedback-section">
+                    <div class="feedback-category" style="border-left-color: #e74c3c; background: #fdf2f2;">
+                        <h3><span>⚠️</span> Areas for Improvement</h3>
+                        <ul class="issue-list">
+                            ${analysis.issues.map(issue => `<li>${issue}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+                ` : ''}
+
+                <div class="feedback-section">
+                    <div class="feedback-category">
+                        <h3><span>💡</span> Suggestions for More Authentic Copy</h3>
+                        <ul class="suggestion-list">
+                            ${analysis.suggestions.map(suggestion => `<li>${suggestion}</li>`).join('')}
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="improvement-section">
+                    <h3>💭 Remember: Heart-Centered Marketing Principles</h3>
+                    <ul style="margin-left: 20px; margin-top: 10px;">
+                        <li>Start with the client's current reality, not your solution</li>
+                        <li>Use language they'd use to describe their situation</li>
+                        <li>Focus on connection and understanding, not conversion</li>
+                        <li>Be specific and concrete rather than vague and conceptual</li>
+                        <li>Invite rather than command</li>
+                    </ul>
+                </div>
+            `;
+
+            resultsDiv.innerHTML = resultsHTML;
+        }
+
+        function getScoreDescription(score) {
+            if (score >= 90) return 'Your copy feels authentic and heart-centered!';
+            if (score >= 80) return 'Strong foundation with room for minor refinements';
+            if (score >= 70) return 'Good direction, needs some authenticity tweaks';
+            if (score >= 60) return 'Decent start, focus on client-first language';
+            if (score >= 50) return 'Needs significant revision for authenticity';
+            return 'Consider a complete rewrite focusing on heart-centered principles';
+        }
     </script>
 </body>
 </html>
