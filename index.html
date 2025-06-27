@@ -325,7 +325,7 @@
             if (atlasAnalysis.issues.length > 0) {
                 issues.push(...atlasAnalysis.issues);
                 suggestions.push(...atlasAnalysis.suggestions);
-                score -= (atlasAnalysis.issues.length * 5);
+                score -= (atlasAnalysis.issues.length * 15); // Much harsher penalty
             }
             if (atlasAnalysis.strengths.length > 0) {
                 strengths.push(...atlasAnalysis.strengths);
@@ -390,36 +390,85 @@
             let suggestions = [];
             let strengths = [];
 
-            // Generic language check
-            const peopleCount = (text.match(/\bpeople\b/gi) || []).length;
-            const everyoneCount = (text.match(/\beveryone\b/gi) || []).length;
-            const totalGeneric = peopleCount + everyoneCount;
-            const wordCount = words.length;
-            const genericRatio = totalGeneric / wordCount;
+            // Pressure/urgency language check (much more comprehensive)
+            const pressureWords = [
+                'expires', 'expire', 'limited time', 'hurry', 'act now', 'dont wait', 'last chance',
+                'doors close', 'doors will close', 'countdown', 'deadline', 'hours only', 'minutes left',
+                'before its too late', 'claim now', 'offer ends', 'wont last', 'going fast',
+                'discount expires', 'price goes up', 'only available', 'exclusive offer'
+            ];
+            
+            let pressureFound = [];
+            let pressureCount = 0;
+            
+            pressureWords.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase)) {
+                    pressureCount++;
+                    pressureFound.push(phrase);
+                }
+            });
 
+            if (pressureCount > 0) {
+                issues.push(`Heavy pressure/urgency language that feels manipulative. Found: "${pressureFound.join('", "')}"`);
+                suggestions.push('Replace urgency tactics with genuine value and connection');
+            }
+
+            // Guru language check (much more comprehensive)
+            const guruWords = [
+                'explosive', 'insane', 'insanely', 'super high-converting', 'proven system', 'secret formula',
+                'unlock the secret', 'next level', 'quantum leap', 'revolutionary system', 'game-changing',
+                'turn-key', 'plug-and-play', 'torrential', 'flood your business', 'proprietary system',
+                'breakthrough system', 'explosive growth', 'mere pittance', 'life-changing system'
+            ];
+            
+            let guruFound = [];
+            guruWords.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase)) {
+                    guruFound.push(phrase);
+                }
+            });
+
+            if (guruFound.length > 0) {
+                issues.push(`Over-the-top "guru" language that sounds inauthentic. Found: "${guruFound.join('", "')}"`);
+                suggestions.push('Use conversational, human language instead of hype words');
+            }
+
+            // Money/discount focus check
+            const moneyFocus = text.match(/\$[\d,]+/g) || [];
+            const discountLanguage = text.toLowerCase().includes('discount') || 
+                                   text.toLowerCase().includes('save') ||
+                                   text.toLowerCase().includes('off');
+
+            if (moneyFocus.length > 2 && discountLanguage) {
+                issues.push('Copy focuses heavily on price/discounts rather than value and transformation');
+                suggestions.push('Lead with the transformation and value, mention price secondary');
+            }
+
+            // Scarcity manipulation check
+            const scarcityWords = ['never again', 'wont ever', 'last time', 'final chance', 'exclusive'];
+            let scarcityFound = [];
+            scarcityWords.forEach(phrase => {
+                if (text.toLowerCase().includes(phrase)) {
+                    scarcityFound.push(phrase);
+                }
+            });
+
+            if (scarcityFound.length > 0) {
+                issues.push(`Artificial scarcity language. Found: "${scarcityFound.join('", "')}"`);
+                suggestions.push('Create genuine value rather than manufactured urgency');
+            }
+
+            // Generic language check (simplified)
+            const peopleCount = (text.match(/\bpeople\b/gi) || []).length;
             const hasSpecificAudience = text.toLowerCase().includes('coaches') ||
                                        text.toLowerCase().includes('therapists') ||
                                        text.toLowerCase().includes('entrepreneurs');
 
-            if (genericRatio > 0.02 && totalGeneric > 6 && !hasSpecificAudience) {
+            if (peopleCount > 5 && !hasSpecificAudience) {
                 issues.push('Language is too generic - speak to your specific Dream Client');
                 suggestions.push('Replace generic terms with specific audience language');
             } else if (hasSpecificAudience) {
                 strengths.push('Speaks directly to specific audience');
-            }
-
-            // Guru language check
-            const guruWords = ['unlock', 'transform', 'next level', 'quantum', 'revolutionary'];
-            let guruFound = [];
-            guruWords.forEach(word => {
-                if (text.toLowerCase().includes(word)) {
-                    guruFound.push(word);
-                }
-            });
-
-            if (guruFound.length > 2) {
-                issues.push(`Language feels too "guru-like". Found: "${guruFound.join('", "')}"`);
-                suggestions.push('Use more conversational, authentic language');
             }
 
             return { issues, suggestions, strengths };
@@ -463,7 +512,7 @@
                 if (text.toLowerCase().includes(word)) sensoryCount++;
             });
 
-            if (sensoryCount === 0 && deepCount === 0) {
+            if (sensoryCount === 0 && deepCount === 0 && surfaceCount > 2) {
                 issues.push('Missing visceral, felt-sense language - how does this show up in their body?');
                 suggestions.push('Add sensory details: "that sinking feeling," "tight chest"');
             } else if (sensoryCount > 0) {
