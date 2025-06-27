@@ -151,11 +151,6 @@
             gap: 10px;
         }
 
-        .icon {
-            width: 20px;
-            height: 20px;
-        }
-
         .issue-list {
             list-style: none;
             margin-bottom: 15px;
@@ -293,12 +288,10 @@
                 return;
             }
 
-            // Show loading state
             placeholder.style.display = 'none';
             resultsDiv.classList.add('show');
             resultsDiv.innerHTML = '<div class="loading">Analyzing your copy...</div>';
 
-            // Simulate analysis delay
             setTimeout(() => {
                 const analysis = performDetailedAnalysis(text);
                 displayResults(analysis);
@@ -313,58 +306,22 @@
             let issues = [];
             let suggestions = [];
             let strengths = [];
-            let score = 85; // Start higher, deduct for specific issues
+            let score = 85;
 
-            // Check for tone consistency
-            const toneAnalysis = analyzeToneShifts(text, sentences);
-            if (toneAnalysis.shifts.length > 0) {
-                issues.push(...toneAnalysis.shifts);
-                score -= (toneAnalysis.shifts.length * 8);
-            }
-
-            // Check for specific problematic patterns
-            const patternAnalysis = analyzeSpecificPatterns(text, sentences);
-            issues.push(...patternAnalysis.issues);
-            suggestions.push(...patternAnalysis.suggestions);
-            score -= (patternAnalysis.issues.length * 6);
-
-            // Check for authentic moments vs. disconnected language
-            const connectionAnalysis = analyzeConnection(text, sentences);
-            strengths.push(...connectionAnalysis.strengths);
-            if (connectionAnalysis.disconnects.length > 0) {
-                issues.push(...connectionAnalysis.disconnects);
-                score -= (connectionAnalysis.disconnects.length * 7);
-            }
-
-            // Check for specific story/example effectiveness
-            const storyAnalysis = analyzeStories(text);
-            if (storyAnalysis.good.length > 0) {
-                strengths.push(...storyAnalysis.good);
-                score += 5;
-            }
-            if (storyAnalysis.forced.length > 0) {
-                issues.push(...storyAnalysis.forced);
+            // Check opening
+            const openingAnalysis = analyzeOpening(text, paragraphs);
+            if (openingAnalysis.issues.length > 0) {
+                issues.push(...openingAnalysis.issues);
+                suggestions.push(...openingAnalysis.suggestions);
                 score -= 10;
             }
-
-            // Check for audience positioning
-            const audienceAnalysis = analyzeAudiencePosition(text);
-            if (audienceAnalysis.issues.length > 0) {
-                issues.push(...audienceAnalysis.issues);
-                suggestions.push(...audienceAnalysis.suggestions);
-                score -= 12;
+            if (openingAnalysis.strengths.length > 0) {
+                strengths.push(...openingAnalysis.strengths);
+                score += 5;
             }
 
-            // Check for specific word choice issues
-            const wordChoiceAnalysis = analyzeWordChoices(text, words);
-            if (wordChoiceAnalysis.issues.length > 0) {
-                issues.push(...wordChoiceAnalysis.issues);
-                suggestions.push(...wordChoiceAnalysis.suggestions);
-                score -= (wordChoiceAnalysis.issues.length * 4);
-            }
-
-            // ATLAS-specific analysis
-            const atlasAnalysis = analyzeATLASElements(text, words);
+            // ATLAS analysis
+            const atlasAnalysis = analyzeATLAS(text, words);
             if (atlasAnalysis.issues.length > 0) {
                 issues.push(...atlasAnalysis.issues);
                 suggestions.push(...atlasAnalysis.suggestions);
@@ -375,20 +332,8 @@
                 score += (atlasAnalysis.strengths.length * 3);
             }
 
-            // Chain of Beliefs structure analysis
-            const chainAnalysis = analyzeChainOfBeliefs(text, paragraphs);
-            if (chainAnalysis.issues.length > 0) {
-                issues.push(...chainAnalysis.issues);
-                suggestions.push(...chainAnalysis.suggestions);
-                score -= (chainAnalysis.issues.length * 6);
-            }
-            if (chainAnalysis.strengths.length > 0) {
-                strengths.push(...chainAnalysis.strengths);
-                score += (chainAnalysis.strengths.length * 4);
-            }
-
-            // Emotional resonance analysis
-            const emotionalAnalysis = analyzeEmotionalResonance(text, sentences);
+            // Emotional analysis
+            const emotionalAnalysis = analyzeEmotions(text);
             if (emotionalAnalysis.issues.length > 0) {
                 issues.push(...emotionalAnalysis.issues);
                 suggestions.push(...emotionalAnalysis.suggestions);
@@ -409,497 +354,123 @@
             };
         }
 
-        function analyzeToneShifts(text, sentences) {
-            let shifts = [];
-            
-            // Look for jarring command shifts
-            const commandEndings = [
-                'it\'s time to', 'stop being', 'take that step', 'take the step',
-                'do this now', 'start today', 'don\'t wait', 'you need to start'
-            ];
-            
-            commandEndings.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) {
-                    shifts.push(`Tone shift detected: "${phrase}" feels abrupt compared to conversational tone`);
-                }
-            });
-
-            // Look for analogies that seem disconnected from the main content
-            const lastFewSentences = sentences.slice(-3).join(' ').toLowerCase();
-            
-            if (lastFewSentences.includes('imagine') && lastFewSentences.includes('costume')) {
-                shifts.push('The ending analogy feels disconnected from the professional tone of the main content');
-            }
-
-            return { shifts };
-        }
-
-        function analyzeSpecificPatterns(text, sentences) {
-            let issues = [];
-            let suggestions = [];
-
-            // Check for third-person expert language (summary/recap style)
-            const thirdPersonPatterns = [
-                /\b\w+ explains?\b/gi, /\b\w+ says?\b/gi, /\b\w+ discusses?\b/gi, 
-                /\bthe hosts?\b/gi, /\bin conclusion\b/gi, /\baccording to \w+\b/gi
-            ];
-            
-            let thirdPersonCount = 0;
-            thirdPersonPatterns.forEach(pattern => {
-                const matches = text.match(pattern);
-                if (matches) thirdPersonCount += matches.length;
-            });
-            
-            if (thirdPersonCount > 2) {
-                issues.push('This reads like a summary of someone else\'s ideas rather than direct communication with your reader');
-                suggestions.push('Try speaking directly to your reader instead of reporting what others said: "Here\'s what most people miss..." instead of quoting experts');
-            }
-
-            // Check for preachy commands
-            const preachyPhrases = ['you need to understand', 'it\'s time to', 'you must realize', 'you have to', 'you should know'];
-            preachyPhrases.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) {
-                    issues.push(`"${phrase}" sounds preachy - try a softer approach`);
-                    suggestions.push(`Instead of commanding, try: "What if..." or "You might find that..."`);
-                }
-            });
-
-            return { issues, suggestions };
-        }
-
-        function analyzeATLASElements(text, words) {
+        function analyzeOpening(text, paragraphs) {
             let issues = [];
             let suggestions = [];
             let strengths = [];
 
-            // Check for Dream Client DNA - specific vs generic audience
-            const specificAudience = text.toLowerCase().includes('coaches') ||
-                                   text.toLowerCase().includes('therapists') ||
-                                   text.toLowerCase().includes('entrepreneurs') ||
-                                   text.toLowerCase().includes('service providers') ||
-                                   text.toLowerCase().includes('consultants');
+            if (paragraphs.length < 1) return { issues, suggestions, strengths };
 
-            const genericLanguage = (text.match(/\bpeople\b/gi) || []).length;
-            const everyoneLanguage = text.toLowerCase().includes('everyone') || 
-                                   text.toLowerCase().includes('anyone');
+            const opening = paragraphs[0].toLowerCase();
+            
+            const hasPersonal = opening.includes('i watched') || opening.includes('i used to') || 
+                              opening.includes('i spent') || opening.includes('i noticed');
+            
+            const hasHook = text.includes('?') || opening.includes('ever notice') || 
+                           opening.includes('ever feel') || opening.includes('have you ever');
+            
+            const isWeak = opening.includes('in this post') || opening.includes('today i want');
 
-            if (genericLanguage > 3 && !specificAudience) {
-                issues.push('Language is too generic - your Dream Client needs to feel specifically seen');
-                suggestions.push('Replace "people" with your specific audience: "coaches like you" or "heart-centered entrepreneurs"');
-            } else if (specificAudience && genericLanguage <= 2) {
-                strengths.push('Speaks directly to your specific Dream Client audience');
-            }
-
-            // Check for authentic voice vs guru positioning
-            const guruWords = ['unlock', 'transform', 'next level', 'quantum leap', 'revolutionary', 
-                             'game-changing', 'life-changing', 'breakthrough system', 'secret formula'];
-            let guruCount = 0;
-            guruWords.forEach(word => {
-                if (text.toLowerCase().includes(word)) guruCount++;
-            });
-
-            const authenticMarkers = ['honestly', 'real talk', 'here\'s the thing', 'i struggled', 
-                                    'i was confused', 'i made mistakes', 'i felt', 'i wondered'];
-            let authenticCount = 0;
-            authenticMarkers.forEach(marker => {
-                if (text.toLowerCase().includes(marker)) authenticCount++;
-            });
-
-            if (guruCount > 2) {
-                issues.push('Language feels too "guru-like" - your authentic voice is more powerful');
-                suggestions.push('Replace transformation jargon with specific, relatable outcomes your clients actually experience');
-            } else if (authenticCount > 0) {
-                strengths.push('Voice feels genuine and relatable - great authenticity');
-            }
-
-            // Check for heart-centered approach vs sales pressure
-            const pressureWords = ['limited time', 'act now', 'don\'t miss out', 'only', 'hurry', 
-                                 'deadline', 'expires', 'last chance'];
-            const serviceWords = ['support you', 'here for you', 'serve', 'help you navigate', 
-                                'understand', 'guide you'];
-
-            let pressureCount = 0;
-            let serviceCount = 0;
-            pressureWords.forEach(word => {
-                if (text.toLowerCase().includes(word)) pressureCount++;
-            });
-            serviceWords.forEach(word => {
-                if (text.toLowerCase().includes(word)) serviceCount++;
-            });
-
-            if (pressureCount > 1) {
-                issues.push('Copy has pressure/urgency language that doesn\'t align with heart-centered marketing');
-                suggestions.push('Focus on genuine connection and service rather than creating urgency');
-            } else if (serviceCount > 0) {
-                strengths.push('Heart-centered approach focused on serving rather than selling');
-            }
-
-            // Check for client-first vs business-first positioning
-            const businessFirst = text.toLowerCase().startsWith('i help') ||
-                                text.toLowerCase().startsWith('i teach') ||
-                                text.toLowerCase().startsWith('my program') ||
-                                text.toLowerCase().startsWith('i work with');
-
-            if (businessFirst) {
-                issues.push('Opening leads with your business instead of client\'s current reality');
-                suggestions.push('Start with their experience: "You know that feeling when..." or "Maybe you\'ve noticed..."');
-            }
-
-            // Check for vulnerability and humanity
-            const vulnerabilityMarkers = ['i didn\'t know', 'i was afraid', 'i struggled', 
-                                        'i felt lost', 'i made mistakes', 'i was confused'];
-            let vulnerabilityCount = 0;
-            vulnerabilityMarkers.forEach(marker => {
-                if (text.toLowerCase().includes(marker)) vulnerabilityCount++;
-            });
-
-            if (vulnerabilityCount > 0) {
-                strengths.push('Shows vulnerability and humanity - builds real connection');
-            } else if (guruCount > 1 && authenticCount === 0) {
-                issues.push('Could benefit from more vulnerability - what did you struggle with?');
-                suggestions.push('Share a moment of uncertainty: "I didn\'t know how to..." or "I was afraid that..."');
+            if (isWeak) {
+                issues.push('Opening feels generic - consider a stronger hook');
+                suggestions.push('Try starting with "Ever notice..." or "I used to..."');
+            } else if (!hasPersonal && !hasHook && opening.length < 50) {
+                issues.push('Opening could be stronger');
+                suggestions.push('Consider starting with personal experience or a hook question');
+            } else {
+                if (hasPersonal) strengths.push('Strong personal opening');
+                if (hasHook) strengths.push('Good use of hook question');
             }
 
             return { issues, suggestions, strengths };
         }
 
-        function analyzeEmotionalResonance(text, sentences) {
+        function analyzeATLAS(text, words) {
             let issues = [];
             let suggestions = [];
             let strengths = [];
 
-            // Check for emotional depth vs. surface-level language
-            const surfaceWords = ['good', 'bad', 'nice', 'fine', 'okay', 'great', 'awesome', 'amazing'];
-            const deepEmotionalWords = ['overwhelmed', 'exhausted', 'frustrated', 'anxious', 'relieved', 
-                                       'validated', 'understood', 'seen', 'heard', 'hopeful', 'confident',
-                                       'peaceful', 'energized', 'inspired', 'empowered', 'grounded'];
+            // Generic language check
+            const peopleCount = (text.match(/\bpeople\b/gi) || []).length;
+            const everyoneCount = (text.match(/\beveryone\b/gi) || []).length;
+            const totalGeneric = peopleCount + everyoneCount;
+            const wordCount = words.length;
+            const genericRatio = totalGeneric / wordCount;
+
+            const hasSpecificAudience = text.toLowerCase().includes('coaches') ||
+                                       text.toLowerCase().includes('therapists') ||
+                                       text.toLowerCase().includes('entrepreneurs');
+
+            if (genericRatio > 0.02 && totalGeneric > 6 && !hasSpecificAudience) {
+                issues.push('Language is too generic - speak to your specific Dream Client');
+                suggestions.push('Replace generic terms with specific audience language');
+            } else if (hasSpecificAudience) {
+                strengths.push('Speaks directly to specific audience');
+            }
+
+            // Guru language check
+            const guruWords = ['unlock', 'transform', 'next level', 'quantum', 'revolutionary'];
+            let guruFound = [];
+            guruWords.forEach(word => {
+                if (text.toLowerCase().includes(word)) {
+                    guruFound.push(word);
+                }
+            });
+
+            if (guruFound.length > 2) {
+                issues.push(`Language feels too "guru-like". Found: "${guruFound.join('", "')}"`);
+                suggestions.push('Use more conversational, authentic language');
+            }
+
+            return { issues, suggestions, strengths };
+        }
+
+        function analyzeEmotions(text) {
+            let issues = [];
+            let suggestions = [];
+            let strengths = [];
+
+            // Surface vs deep emotions
+            const surfaceWords = ['good', 'bad', 'nice', 'great', 'awesome'];
+            const deepWords = ['overwhelmed', 'frustrated', 'validated', 'understood', 'seen'];
 
             let surfaceCount = 0;
             let deepCount = 0;
+            let surfaceFound = [];
 
             surfaceWords.forEach(word => {
-                surfaceCount += (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length;
+                if (text.toLowerCase().includes(word)) {
+                    surfaceCount++;
+                    surfaceFound.push(word);
+                }
             });
 
-            deepEmotionalWords.forEach(word => {
+            deepWords.forEach(word => {
                 if (text.toLowerCase().includes(word)) deepCount++;
             });
 
             if (surfaceCount > 3 && deepCount === 0) {
-                issues.push('Language stays surface-level - dig deeper into the actual emotions your clients feel');
-                suggestions.push('Replace generic words like "good/bad" with specific emotions: "overwhelmed," "validated," "seen"');
-            } else if (deepCount > 2) {
-                strengths.push('Uses emotionally resonant language that reflects real human experience');
+                issues.push(`Language stays surface-level. Found: "${surfaceFound.join('", "')}"`);
+                suggestions.push('Use deeper emotional language like "overwhelmed" or "validated"');
+            } else if (deepCount > 1) {
+                strengths.push('Uses emotionally resonant language');
             }
 
-            // Check for sensory and visceral language
-            const sensoryWords = ['heavy', 'tight', 'sinking', 'lightness', 'warmth', 'cold', 'sharp',
-                                'ache', 'knot', 'breath', 'chest', 'shoulders', 'stomach', 'heart racing'];
+            // Sensory language check
+            const sensoryWords = ['tight', 'heavy', 'sinking', 'lightness', 'breath', 'chest'];
             let sensoryCount = 0;
             sensoryWords.forEach(word => {
                 if (text.toLowerCase().includes(word)) sensoryCount++;
             });
 
-            if (sensoryCount > 0) {
-                strengths.push('Great use of sensory language that helps readers feel the experience');
-            } else if (deepCount === 0) {
+            if (sensoryCount === 0 && deepCount === 0) {
                 issues.push('Missing visceral, felt-sense language - how does this show up in their body?');
-                suggestions.push('Add sensory details: "that sinking feeling," "tight chest," "shoulders carrying the weight"');
-            }
-
-            // Check for relatable internal dialogue
-            const internalDialogue = ['you tell yourself', 'that voice in your head', 'you wonder if',
-                                    'you think', 'you worry', 'you question', 'you doubt', 'you hope'];
-            let dialogueCount = 0;
-            internalDialogue.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) dialogueCount++;
-            });
-
-            if (dialogueCount > 0) {
-                strengths.push('Captures internal dialogue that creates deep recognition and connection');
-            }
-
-            // Check for specific moments vs. abstract concepts
-            const specificMoments = ['when you', 'that moment when', 'you find yourself', 'as you',
-                                   'while you\'re', 'after you', 'before you', 'right when'];
-            let momentCount = 0;
-            specificMoments.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) momentCount++;
-            });
-
-            const abstractConcepts = ['success', 'growth', 'transformation', 'journey', 'process',
-                                    'mindset', 'paradigm', 'breakthrough', 'shift'];
-            let abstractCount = 0;
-            abstractConcepts.forEach(word => {
-                if (text.toLowerCase().includes(word)) abstractCount++;
-            });
-
-            if (abstractCount > 2 && momentCount === 0) {
-                issues.push('Too focused on abstract concepts - paint specific moments your reader experiences');
-                suggestions.push('Replace abstract terms with specific situations: "When you sit down to write and stare at the blank page..."');
-            } else if (momentCount > 1) {
-                strengths.push('Paints specific, relatable moments that create vivid connection');
-            }
-
-            // Check for emotional progression/journey
-            const struggles = ['struggle', 'stuck', 'overwhelmed', 'frustrated', 'confused', 'lost'];
-            const relief = ['relief', 'clarity', 'confidence', 'peace', 'hope', 'lightness', 'ease'];
-            
-            let struggleCount = 0;
-            let reliefCount = 0;
-            
-            struggles.forEach(word => {
-                if (text.toLowerCase().includes(word)) struggleCount++;
-            });
-            
-            relief.forEach(word => {
-                if (text.toLowerCase().includes(word)) reliefCount++;
-            });
-
-            if (struggleCount > 0 && reliefCount > 0) {
-                strengths.push('Creates emotional journey from struggle to relief/resolution');
-            } else if (struggleCount > 0 && reliefCount === 0) {
-                issues.push('Focuses on problems without emotional resolution - where\'s the relief/hope?');
-                suggestions.push('Balance struggle with the emotional outcome: relief, clarity, confidence they\'ll feel');
-            }
-
-            // Check for emotional validation vs. shame/guilt
-            const validatingLanguage = ['it makes sense', 'of course you feel', 'anyone would', 'you\'re not alone',
-                                      'this is normal', 'you\'re not crazy', 'valid', 'understandable'];
-            const shamingLanguage = ['you should know better', 'stop being', 'quit', 'you\'re wrong',
-                                   'that\'s ridiculous', 'get over it', 'just'];
-
-            let validatingCount = 0;
-            let shamingCount = 0;
-
-            validatingLanguage.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) validatingCount++;
-            });
-
-            shamingLanguage.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) shamingCount++;
-            });
-
-            if (validatingCount > 0) {
-                strengths.push('Provides emotional validation that makes readers feel seen and understood');
-            } else if (shamingCount > 0) {
-                issues.push('Language may create shame or judgment rather than emotional safety');
-                suggestions.push('Replace judgmental language with validation: "Of course you feel this way" or "This makes complete sense"');
+                suggestions.push('Add sensory details: "that sinking feeling," "tight chest"');
+            } else if (sensoryCount > 0) {
+                strengths.push('Great use of sensory language');
             }
 
             return { issues, suggestions, strengths };
-        }
-
-        function analyzeChainOfBeliefs(text, paragraphs) {
-            let issues = [];
-            let suggestions = [];
-            let strengths = [];
-
-            if (paragraphs.length < 2) {
-                return { issues, suggestions, strengths }; // Skip analysis for very short content
-            }
-
-            // Check for Bar Stool Moment (client's current reality opening)
-            const firstParagraph = paragraphs[0].toLowerCase();
-            const hasBarStoolMoment = firstParagraph.includes('have you ever') ||
-                                    firstParagraph.includes('you know that feeling') ||
-                                    firstParagraph.includes('maybe you\'ve') ||
-                                    firstParagraph.includes('ever feel like') ||
-                                    firstParagraph.includes('do you find yourself') ||
-                                    /you might (recognize|feel|notice|find)/.test(firstParagraph);
-
-            const hasClientReality = firstParagraph.includes('fear') ||
-                                   firstParagraph.includes('struggle') ||
-                                   firstParagraph.includes('overwhelmed') ||
-                                   firstParagraph.includes('stuck') ||
-                                   firstParagraph.includes('frustrated');
-
-            if (!hasBarStoolMoment && !hasClientReality) {
-                issues.push('Missing "Bar Stool Moment" - doesn\'t open with client\'s current reality');
-                suggestions.push('Start with what they\'re experiencing: "You know that feeling when..." or "Have you ever found yourself..."');
-            } else if (hasBarStoolMoment || hasClientReality) {
-                strengths.push('Strong opening that connects with client\'s current experience');
-            }
-
-            // Check for Differentiator (unique perspective/bold stance)
-            const hasDifferentiator = text.toLowerCase().includes('what most people don\'t') ||
-                                    text.toLowerCase().includes('here\'s what\'s different') ||
-                                    text.toLowerCase().includes('the truth is') ||
-                                    text.toLowerCase().includes('but here\'s the thing') ||
-                                    text.toLowerCase().includes('what if i told you') ||
-                                    text.toLowerCase().includes('contrary to popular belief') ||
-                                    /but (what|here\'s|the thing)/.test(text.toLowerCase());
-
-            if (!hasDifferentiator) {
-                issues.push('Missing your unique "Differentiator" - what\'s your bold stance or unique perspective?');
-                suggestions.push('Add your unique take: "What most people don\'t realize is..." or "Here\'s what\'s different about my approach..."');
-            } else {
-                strengths.push('Presents a clear differentiator or unique perspective');
-            }
-
-            // Check for Epiphany moment (breakthrough insight)
-            const hasEpiphany = text.toLowerCase().includes('that\'s when') ||
-                              text.toLowerCase().includes('suddenly') ||
-                              text.toLowerCase().includes('i realized') ||
-                              text.toLowerCase().includes('it clicked') ||
-                              text.toLowerCase().includes('the moment i understood') ||
-                              text.toLowerCase().includes('everything changed when') ||
-                              text.toLowerCase().includes('the breakthrough came');
-
-            const hasReframing = text.toLowerCase().includes('what if') ||
-                               text.toLowerCase().includes('imagine if') ||
-                               text.toLowerCase().includes('picture this') ||
-                               text.toLowerCase().includes('instead of');
-
-            if (hasEpiphany) {
-                strengths.push('Includes powerful epiphany moment that creates insight');
-            } else if (hasReframing) {
-                strengths.push('Good use of reframing to create new perspective');
-            }
-
-            // Check overall Chain of Beliefs flow
-            const hasGoodFlow = (hasBarStoolMoment || hasClientReality) && hasDifferentiator;
-            if (hasGoodFlow) {
-                strengths.push('Strong Chain of Beliefs structure guides reader from problem to insight');
-            }
-
-            // Check for premature solution jumping
-            const solutionWords = ['here\'s how', 'the solution', 'simply do this', 'just follow these steps'];
-            let solutionCount = 0;
-            solutionWords.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) solutionCount++;
-            });
-
-            if (solutionCount > 0 && !hasDifferentiator) {
-                issues.push('Jumping to solutions too quickly - establish the problem and your unique perspective first');
-                suggestions.push('Build more context before offering solutions - what\'s different about your approach?');
-            }
-
-            return { issues, suggestions, strengths };
-        }
-
-        function analyzeConnection(text, sentences) {
-            let strengths = [];
-            let disconnects = [];
-
-            // Look for authentic connection moments
-            const connectionPhrases = [
-                'i know this from personal experience', 'i still remember', 'that\'s when i learned',
-                'i had been there', 'that moment stayed with me'
-            ];
-            
-            connectionPhrases.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) {
-                    strengths.push('Great use of personal experience to create connection');
-                }
-            });
-
-            // Look for statistics that connect vs. overwhelm
-            const statMatches = text.match(/\d+%/g);
-            if (statMatches && statMatches.length > 4) {
-                disconnects.push('Too many statistics can feel overwhelming - pick the most compelling 1-2');
-            } else if (statMatches && statMatches.length > 0) {
-                strengths.push('Good use of specific data to support your points');
-            }
-
-            // Check for talking ABOUT vs TO audience
-            const aboutLanguage = ['people report', 'many entrepreneurs', 'students show', 'providers experience'];
-            let aboutCount = 0;
-            aboutLanguage.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) {
-                    aboutCount++;
-                }
-            });
-            
-            if (aboutCount > 3) {
-                disconnects.push('You\'re talking ABOUT your audience instead of TO them - try "you might recognize this feeling" instead of "people report feeling"');
-            }
-
-            return { strengths, disconnects };
-        }
-
-        function analyzeStories(text) {
-            let good = [];
-            let forced = [];
-
-            // Look for natural story elements
-            const naturalStoryPhrases = ['years ago', 'i remember', 'that\'s when i learned', 'i realized', 'that moment'];
-            let naturalCount = 0;
-            naturalStoryPhrases.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) {
-                    naturalCount++;
-                }
-            });
-            
-            if (naturalCount > 1) {
-                good.push('Your personal stories feel natural and serve the message well');
-            }
-
-            // Look for forced analogies or examples that don't match tone
-            const forcedIndicators = [
-                /imagine you (have|are) (the|a) \w+/gi,
-                /picture (yourself|this)/gi,
-                /think of (a|an|the)/gi
-            ];
-            
-            let forcedCount = 0;
-            forcedIndicators.forEach(pattern => {
-                const matches = text.match(pattern);
-                if (matches) forcedCount += matches.length;
-            });
-            
-            if (forcedCount > 2) {
-                forced.push('Some analogies or examples feel forced and break the natural flow of your message');
-            }
-
-            return { good, forced };
-        }
-
-        function analyzeAudiencePosition(text) {
-            let issues = [];
-            let suggestions = [];
-
-            // Check for starting with business instead of client reality
-            const businessFirst = text.toLowerCase().startsWith('in this episode') || 
-                                 text.toLowerCase().includes('i help') ||
-                                 text.toLowerCase().includes('my program');
-            
-            if (businessFirst) {
-                issues.push('Opens with business/program info instead of client\'s current reality');
-                suggestions.push('Try starting with what your reader is experiencing right now: "You know that feeling when..."');
-            }
-
-            return { issues, suggestions };
-        }
-
-        function analyzeWordChoices(text, words) {
-            let issues = [];
-            let suggestions = [];
-
-            // Check for overuse of "you" in commands vs. empathy
-            const youCount = words.filter(word => word === 'you').length;
-            const commandYous = (text.match(/you (need|must|should|have to)/gi) || []).length;
-            
-            if (commandYous > 2 && youCount > 20) {
-                issues.push('High use of commanding "you" statements - sounds demanding rather than supportive');
-                suggestions.push('Try "you might" or "what if you" instead of "you need to"');
-            }
-
-            // Check for specific jargon that doesn't match audience language
-            const therapyJargon = ['systematic review', 'healthcare providers', 'moderate to severe'];
-            let jargonFound = [];
-            therapyJargon.forEach(phrase => {
-                if (text.toLowerCase().includes(phrase)) {
-                    jargonFound.push(phrase);
-                }
-            });
-            
-            if (jargonFound.length > 0) {
-                issues.push(`Academic language like "${jargonFound.join(', ')}" might not match how your audience talks about this`);
-                suggestions.push('Use the words your clients would use to describe their experience');
-            }
-
-            return { issues, suggestions };
         }
 
         function displayResults(analysis) {
@@ -919,7 +490,7 @@
             const resultsHTML = `
                 <div class="score-section">
                     <div class="overall-score ${scoreClass}">${analysis.score}/100</div>
-                    <div>${scoreText} - ${getScoreDescription(analysis.score)}</div>
+                    <div>${scoreText}</div>
                     <div style="margin-top: 10px; color: #6c757d;">
                         ${analysis.wordCount} words • ${analysis.sentenceCount} sentences
                     </div>
@@ -957,50 +528,9 @@
                     </div>
                 </div>
                 ` : ''}
-
-                <div class="improvement-section">
-                    <h3>🎯 Quick Wins for This Piece</h3>
-                    <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #27ae60; font-style: italic;">
-                        ${getSpecificRewrite(analysis)}
-                    </div>
-                </div>
             `;
 
             resultsDiv.innerHTML = resultsHTML;
-        }
-
-        function getSpecificRewrite(analysis) {
-            // Generate specific rewrite suggestions based on the issues found
-            if (analysis.issues.some(issue => issue.includes('analogy') || issue.includes('disconnected'))) {
-                return '<strong>Try this ending instead:</strong> "What small step would you take if you knew no one was judging your progress?"';
-            }
-            
-            if (analysis.issues.some(issue => issue.includes('summary') || issue.includes('someone else'))) {
-                return '<strong>Make it direct:</strong> Instead of summarizing what others said, speak directly to your reader\'s current situation.';
-            }
-            
-            if (analysis.issues.some(issue => issue.includes('tone shift') || issue.includes('abrupt'))) {
-                return '<strong>Smooth the ending:</strong> Keep the same conversational tone throughout - avoid sudden commands.';
-            }
-            
-            if (analysis.issues.some(issue => issue.includes('ABOUT your audience'))) {
-                return '<strong>Flip the perspective:</strong> Change "Many people struggle with..." to "You might recognize this feeling..."';
-            }
-            
-            if (analysis.issues.some(issue => issue.includes('preachy'))) {
-                return '<strong>Soften the approach:</strong> Replace commands with invitations: "What if you tried..." instead of "You need to..."';
-            }
-            
-            return '<strong>Focus on connection:</strong> Lead with what your reader is experiencing, then gently guide them toward insight.';
-        }
-
-        function getScoreDescription(score) {
-            if (score >= 90) return 'Your copy feels authentic and connects naturally!';
-            if (score >= 80) return 'Strong foundation with minor tweaks needed';
-            if (score >= 70) return 'Good direction, some tone adjustments recommended';
-            if (score >= 60) return 'Solid content, focus on smoother flow';
-            if (score >= 50) return 'Good ideas, needs more natural connection';
-            return 'Consider reworking the approach for better authenticity';
         }
     </script>
 </body>
