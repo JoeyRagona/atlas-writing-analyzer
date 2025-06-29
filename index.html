@@ -325,7 +325,7 @@
             if (atlasAnalysis.issues.length > 0) {
                 issues.push(...atlasAnalysis.issues);
                 suggestions.push(...atlasAnalysis.suggestions);
-                score -= (atlasAnalysis.issues.length * 15); // Much harsher penalty
+                score -= (atlasAnalysis.issues.length * 20); // Even harsher penalty
             }
             if (atlasAnalysis.strengths.length > 0) {
                 strengths.push(...atlasAnalysis.strengths);
@@ -390,7 +390,56 @@
             let suggestions = [];
             let strengths = [];
 
-            // Pressure/urgency language check (much more comprehensive)
+            // Poor grammar/spelling check
+            const grammarIssues = [
+                'u ', ' u ', 'ur ', 'urself', 'bisness', 'ya ', ' ya', 'gonna', 'gotta',
+                'wanna', 'dunno', 'alot', 'cant', 'dont', 'wont', 'isnt', 'hasnt'
+            ];
+            
+            let grammarFound = [];
+            let grammarCount = 0;
+            
+            grammarIssues.forEach(issue => {
+                if (text.toLowerCase().includes(issue)) {
+                    grammarCount++;
+                    if (!grammarFound.includes(issue.trim())) grammarFound.push(issue.trim());
+                }
+            });
+
+            if (grammarCount > 2) {
+                issues.push(`Poor grammar/spelling undermines professional credibility. Found: "${grammarFound.join('", "')}"`);
+                suggestions.push('Use proper spelling and grammar to establish professional credibility');
+            }
+
+            // Excessive caps check
+            const capsWords = text.match(/[A-Z]{3,}/g) || [];
+            if (capsWords.length > 2) {
+                issues.push(`Excessive ALL CAPS text appears unprofessional. Found: "${capsWords.join('", "')}"`);
+                suggestions.push('Use standard capitalization for professional appearance');
+            }
+            const vagueWords = [
+                'stuff', 'things', 'whatever', 'i guess', 'maybe', 'kinda', 'sorta', 
+                'i think', 'i mean', 'or something', 'tbh', 'honestly idk', 'lol',
+                'i dont really know', 'not sure', 'probably', 'might be'
+            ];
+            
+            let vagueFound = [];
+            let vagueCount = 0;
+            
+            vagueWords.forEach(phrase => {
+                const matches = text.toLowerCase().match(new RegExp(`\\b${phrase}\\b`, 'g'));
+                if (matches) {
+                    vagueCount += matches.length;
+                    if (!vagueFound.includes(phrase)) vagueFound.push(phrase);
+                }
+            });
+
+            if (vagueCount > 3) {
+                issues.push(`Language is too vague and uncertain - sounds unprofessional. Found: "${vagueFound.join('", "')}"`);
+                suggestions.push('Use confident, specific language that demonstrates expertise');
+            }
+
+            // Pressure/urgency language check
             const pressureWords = [
                 'expires', 'expire', 'limited time', 'hurry', 'act now', 'dont wait', 'last chance',
                 'doors close', 'doors will close', 'countdown', 'deadline', 'hours only', 'minutes left',
@@ -413,7 +462,7 @@
                 suggestions.push('Replace urgency tactics with genuine value and connection');
             }
 
-            // Guru language check (much more comprehensive)
+            // Guru language check
             const guruWords = [
                 'explosive', 'insane', 'insanely', 'super high-converting', 'proven system', 'secret formula',
                 'unlock the secret', 'next level', 'quantum leap', 'revolutionary system', 'game-changing',
@@ -431,6 +480,21 @@
             if (guruFound.length > 0) {
                 issues.push(`Over-the-top "guru" language that sounds inauthentic. Found: "${guruFound.join('", "')}"`);
                 suggestions.push('Use conversational, human language instead of hype words');
+            }
+
+            // Excessive casual language check
+            const casualWords = ['lol', 'omg', 'tbh', 'ngl', 'fr', 'girlboss', 'slay', 'yasss'];
+            let casualFound = [];
+            
+            casualWords.forEach(word => {
+                if (text.toLowerCase().includes(word)) {
+                    casualFound.push(word);
+                }
+            });
+
+            if (casualFound.length > 0) {
+                issues.push(`Overly casual language may undermine professional credibility. Found: "${casualFound.join('", "')}"`);
+                suggestions.push('Use professional language that still feels authentic and approachable');
             }
 
             // Money/discount focus check
@@ -457,6 +521,23 @@
                 issues.push(`Artificial scarcity language. Found: "${scarcityFound.join('", "')}"`);
                 suggestions.push('Create genuine value rather than manufactured urgency');
             }
+
+            // Contradictory messaging check
+            const contradictions = [
+                {phrases: ['hard', 'easy'], message: 'Contradictory messaging about difficulty level'},
+                {phrases: ['scary', 'try'], message: 'Contradictory advice about overcoming fear'},
+                {phrases: ['dont know', 'just try'], message: 'Giving advice while admitting lack of knowledge'}
+            ];
+
+            contradictions.forEach(contradiction => {
+                const hasAll = contradiction.phrases.every(phrase => 
+                    text.toLowerCase().includes(phrase)
+                );
+                if (hasAll) {
+                    issues.push(contradiction.message);
+                    suggestions.push('Ensure your messaging is consistent and confident throughout');
+                }
+            });
 
             // Generic language check (simplified)
             const peopleCount = (text.match(/\bpeople\b/gi) || []).length;
