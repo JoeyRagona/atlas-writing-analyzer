@@ -1,20 +1,19 @@
-# ATLAS Writing Analyzer 2.5
+# ATLAS Writing Analyzer v2.6
 
-A browser-based tool that scores marketing copy (0–100) and provides actionable feedback for heart-centered entrepreneurs, now aligned to your custom-GPT foundation rules.
+**Fix:** Loading indicator clears and shows results (no longer stuck on 'Analyzing').  
+
+A browser-based tool that scores marketing copy (0–100) with authentic-voice detectors.
 
 ## Files
-- `index.html`
-- `style.css`
-- `main.js`
-- `README.md`
+- index.html
+- style.css
+- main.js
+- README.md
 
 ## Usage
-1. Clone or download this repo.
-2. Open `index.html` in your browser.
-3. Paste your copy, click **Analyze My Writing**.
-
-## Contributing
-Fork and submit pull requests. Report issues via GitHub Issues.
+1. Open index.html in a browser.
+2. Paste copy, click Analyze.
+3. View actionable feedback.
 
 ## License
 MIT © 2025
