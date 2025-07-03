@@ -1,4 +1,4 @@
-# ATLAS Writing Analyzer 2.0
+# ATLAS Writing Analyzer 2.1
 
 A browser-based tool that scores marketing copy (0–100) and provides actionable feedback for heart-centered entrepreneurs.
 

@@ -11,36 +11,22 @@ analyzeBtn.addEventListener('click', () => {
 
 function performAnalysis(text) {
   const lower = text.toLowerCase();
-  const words = text.split(/\s+/).length;
+  const words = lower.split(/\s+/).length;
   const sentences = (text.match(/[.!?]+/g) || []).length;
-
   const issues = [];
   const tips = [];
   const strengths = [];
 
-  // 1) Whole-word grammar/spelling patterns:
+  // Whole-word grammar/spelling patterns
   const grammarPatterns = [
-    '\\bu\\b',    // single “u”
-    '\\bur\\b',   // single “ur”
-    '\\bbisness\\b',
-    '\\bgonna\\b',
-    '\\bgotta\\b',
-    '\\bwanna\\b',
-    '\\bdunno\\b',
-    '\\balot\\b',
-    '\\bcant\\b',
-    '\\bdont\\b',
-    '\\bwont\\b',
-    '\\bisnt\\b',
-    '\\bhasnt\\b'
+    '\\bu\\b', '\\bur\\b', '\\bbisness\\b', '\\bgonna\\b', '\\bgotta\\b',
+    '\\bwanna\\b', '\\bdunno\\b', '\\balot\\b', '\\bcant\\b', '\\bdont\\b',
+    '\\bwont\\b', '\\bisnt\\b', '\\bhasnt\\b'
   ];
   const foundGrammar = [];
   grammarPatterns.forEach(pat => {
-    const rx = new RegExp(pat, 'gi');
-    if (rx.test(lower)) {
-      // strip out the \\b so we display the raw word
-      foundGrammar.push(pat.replace(/\\\\b/g, ''));
-    }
+    const rx = new RegExp(pat, 'g');
+    if (rx.test(lower)) foundGrammar.push(pat.replace(/\\b/g, ''));
   });
   if (foundGrammar.length) {
     issues.push(
@@ -49,33 +35,30 @@ function performAnalysis(text) {
     tips.push('Use proper whole-word spelling for credibility');
   }
 
-  // 2) Vague language (same as before, but with word boundaries)
+  // Vague language check with boundaries
   const vagueWords = ['stuff','things','whatever','i guess','maybe','kinda','sorta','probably','might be'];
   const foundVague = vagueWords.filter(w => {
-    const pattern = '\\b' + w.replace(/ /g,'\\s+') + '\\b';
-    return new RegExp(pattern,'gi').test(lower);
+    const pattern = '\b' + w.replace(/ /g,'\\s+') + '\b';
+    return new RegExp(pattern, 'g').test(lower);
   });
   if (foundVague.length > 3) {
     issues.push(`Language is too vague. Found: "${foundVague.join('", "')}"`);
     tips.push('Swap vague terms for specific, confident statements');
   }
 
-  // ... the rest of your checks (hype, hook, etc.) go here unchanged ...
+  // Additional checks (hooks, tips) remain unchanged
+  if (!/\?/.test(text)) {
+    issues.push('No questions/hooks in opening');
+    tips.push('Start with a hook question or personal story');
+  }
+  if (text.length < 50) strengths.push('Concise sample');
 
-  // Score calc
+  // Score calculation
   let score = 100 - issues.length * 20 + strengths.length * 5;
   score = Math.max(0, Math.min(100, score));
 
-  return {
-    score,
-    words,
-    sentences,
-    issues: issues.slice(0,3),
-    tips: tips.slice(0,3),
-    strengths: strengths.slice(0,2)
-  };
+  return { score, words, sentences, issues: issues.slice(0,3), tips: tips.slice(0,3), strengths: strengths.slice(0,2) };
 }
-
 
 function renderResults(a) {
   resultsDiv.innerHTML = \`
