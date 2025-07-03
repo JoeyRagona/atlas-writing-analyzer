@@ -17,17 +17,25 @@ function performAnalysis(text) {
   const tips = [];
   const strengths = [];
 
-  // Whole-word grammar/spelling patterns
+  // Whole-word grammar/spelling patterns using regex literals
   const grammarPatterns = [
-    '\\bu\\b', '\\bur\\b', '\\bbisness\\b', '\\bgonna\\b', '\\bgotta\\b',
-    '\\bwanna\\b', '\\bdunno\\b', '\\balot\\b', '\\bcant\\b', '\\bdont\\b',
-    '\\bwont\\b', '\\bisnt\\b', '\\bhasnt\\b'
+    /\bu\b/gi,
+    /\bur\b/gi,
+    /\bbisness\b/gi,
+    /\bgonna\b/gi,
+    /\bgotta\b/gi,
+    /\bwanna\b/gi,
+    /\bdunno\b/gi,
+    /\balot\b/gi,
+    /\bcant\b/gi,
+    /\bdont\b/gi,
+    /\bwont\b/gi,
+    /\bisnt\b/gi,
+    /\bhasnt\b/gi
   ];
-  const foundGrammar = [];
-  grammarPatterns.forEach(pat => {
-    const rx = new RegExp(pat, 'g');
-    if (rx.test(lower)) foundGrammar.push(pat.replace(/\\b/g, ''));
-  });
+  const foundGrammar = grammarPatterns
+    .filter(rx => rx.test(lower))
+    .map(rx => rx.source);
   if (foundGrammar.length) {
     issues.push(
       `Poor grammar/spelling detected. Found: "${[...new Set(foundGrammar)].join('", "')}"`
@@ -38,15 +46,15 @@ function performAnalysis(text) {
   // Vague language check with boundaries
   const vagueWords = ['stuff','things','whatever','i guess','maybe','kinda','sorta','probably','might be'];
   const foundVague = vagueWords.filter(w => {
-    const pattern = '\b' + w.replace(/ /g,'\\s+') + '\b';
-    return new RegExp(pattern, 'g').test(lower);
+    const rx = new RegExp("\b" + w.replace(/ /g,'\\s+') + "\b","gi");
+    return rx.test(lower);
   });
   if (foundVague.length > 3) {
     issues.push(`Language is too vague. Found: "${foundVague.join('", "')}"`);
     tips.push('Swap vague terms for specific, confident statements');
   }
 
-  // Additional checks (hooks, tips) remain unchanged
+  // Additional checks
   if (!/\?/.test(text)) {
     issues.push('No questions/hooks in opening');
     tips.push('Start with a hook question or personal story');
@@ -61,24 +69,24 @@ function performAnalysis(text) {
 }
 
 function renderResults(a) {
-  resultsDiv.innerHTML = \`
-    <div class="score">\${a.score}/100</div>
-    <div class="label">\${a.score<60? 'Needs Work: See tips below': a.score<80? 'Good': 'Excellent'}</div>
-    <div>\${a.words} words • \${a.sentences} sentences</div>
+  resultsDiv.innerHTML = `
+    <div class="score">${a.score}/100</div>
+    <div class="label">${a.score<60? 'Needs Work: See tips below': a.score<80? 'Good': 'Excellent'}</div>
+    <div>${a.words} words • ${a.sentences} sentences</div>
 
     <h3>What’s Hurting Your Score</h3>
     <ul class="feedback-list">
-      \${a.issues.map(i=>\`<li data-icon="⚠️">\${i}</li>\`).join('') || '<li>No major issues</li>'}
+      ${a.issues.map(i=>`<li data-icon="⚠️">${i}</li>`).join('') || '<li>No major issues</li>'}
     </ul>
 
     <h3>Quick Wins — Try This Next</h3>
     <ul class="feedback-list">
-      \${a.tips.map(t=>\`<li data-icon="💡">\${t}</li>\`).join('') || '<li>Keep it up!</li>'}
+      ${a.tips.map(t=>`<li data-icon="💡">${t}</li>`).join('') || '<li>Keep it up!</li>'}
     </ul>
 
     <h3>What’s Working</h3>
     <ul class="feedback-list">
-      \${a.strengths.map(s=>\`<li data-icon="✅">\${s}</li>\`).join('') || '<li>Clear copy detected</li>'}
+      ${a.strengths.map(s=>`<li data-icon="✅">${s}</li>`).join('') || '<li>Clear copy detected</li>'}
     </ul>
 
     <h3>Pro Writing Tips</h3>
@@ -90,5 +98,5 @@ function renderResults(a) {
     </ul>
 
     <div class="toggle" onclick="resultsDiv.classList.toggle('full')">Show Full Analysis</div>
-  \`;
+  `;
 }
